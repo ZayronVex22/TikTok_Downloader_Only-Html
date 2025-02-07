@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Video Downloader</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* (Semua styling seperti sebelumnya) */
+
+        #toastDialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 500px;
+            padding: 30px;
+            text-align: center;
+            display: none;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            animation: slideUp 1s ease-out forwards;
+        }
+
+        @keyframes slideUp {
+            0% { transform: translate(-50%, 60%); opacity: 0; }
+            100% { transform: translate(-50%, -50%); opacity: 1; }
+        }
+
+        #toastDialog h1 {
+            font-size: 28px;
+            color: cyan;
+            margin-bottom: 20px;
+        }
+
+        #toastDialog p {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        .modal-buttons button {
+            background-color: cyan;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            width: 45%;
+        }
+
+        .modal-buttons button:hover {
+            background: #00b7b7;
+            transform: scale(1.1);
+        }
+
+        .modal-buttons button:active {
+            transform: scale(0.95);
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1><i class="fab fa-tiktok"></i> TikTok Video Downloader</h1>
+
+    <input type="text" id="tiktokUrl" placeholder="Masukkan URL TikTok">
+    <button id="searchBtn" onclick="searchUrl()">Search URL</button>
+
+    <div id="loading"></div>
+    <div id="progressBar"></div>
+
+    <div class="gif-container" id="gifContainer">
+        <img id="videoPreview" alt="Video Preview" width="100%" style="max-width: 500px; border-radius: 8px;">
+    </div>
+
+    <div class="buttons-container" id="buttonsContainer">
+        <button id="viewVideoBtn" onclick="viewVideo()">
+            <i class="fas fa-eye"></i> View Video
+        </button>
+        <button id="downloadVideoBtn" onclick="downloadVideo()">
+            <i class="fas fa-download"></i> Download Video
+        </button>
+        <button id="downloadMusicBtn" onclick="downloadMusic()">
+            <i class="fas fa-music"></i> Download Music
+        </button>
+    </div>
+
+    <footer>
+        &copy; 2025 ZVex AI. All rights reserved.
+    </footer>
+
+    <!-- Toast Modal Dialog -->
+    <div id="toastDialog">
+        <h1>Download Started! 🎉</h1>
+        <p id="toastMessage">Loading message...</p>
+        <div class="modal-buttons">
+            <button onclick="shareLink()">
+                <i class="fas fa-share-alt"></i> Share
+            </button>
+            <button onclick="closeToast()">
+                <i class="fas fa-check"></i> OK
+            </button>
+        </div>
+    </div>
+
+    <script>
+        async function searchUrl() {
+            const url = document.getElementById('tiktokUrl').value;
+            if (!url) return alert('Masukkan URL terlebih dahulu!');
+
+            document.getElementById('searchBtn').style.display = 'none'; // Hide search button
+            document.getElementById('loading').style.display = 'block'; // Show loading animation
+
+            // Progress bar animation
+            let progress = 0;
+            let progressBar = document.getElementById('progressBar');
+            let interval = setInterval(() => {
+                progress += 2;
+                progressBar.style.width = `${progress}%`;
+                if (progress >= 100) clearInterval(interval);
+            }, 50);
+
+            try {
+                let response = await axios.get('https://www.tikwm.com/api/', {
+                    params: { url: url, hd: 1 }
+                });
+
+                let data = response.data.data;
+                document.getElementById('loading').style.display = 'none'; // Hide loading
+                document.getElementById('progressBar').style.width = '100%'; // Full progress bar
+
+                // Show buttons
+                document.getElementById('buttonsContainer').style.display = 'flex';
+
+                // Display video preview image
+                document.getElementById('videoPreview').src = data.cover;
+                document.getElementById('gifContainer').style.display = 'block';
+
+                // Set up video and music download URLs
+                window.videoUrl = data.play;
+                window.musicUrl = data.music;
+
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                alert('Gagal mengambil video!');
+                console.error(error);
+            }
+        }
+
+        function viewVideo() {
+            window.open(window.videoUrl, '_blank');
+        }
+
+        function downloadVideo() {
+            showLoadingAnimation();
+
+            fetch(window.videoUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'ZVex_Sevtik.mp4'; // Set the filename for video
+                    link.style.display = 'none'; // Hide the link
+                    document.body.appendChild(link);
+                    link.click(); // Trigger the download
+                    document.body.removeChild(link); // Remove the link after clicking
+                    showToast("video");
+                })
+                .catch(error => {
+                    console.error('Download video failed', error);
+                });
+        }
+
+        function downloadMusic() {
+            showLoadingAnimation();
+
+            fetch(window.musicUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = 'ZVex_Sevtik.mp3'; // Set the filename for music
+                    link.style.display = 'none'; // Hide the link
+                    document.body.appendChild(link);
+                    link.click(); // Trigger the download
+                    document.body.removeChild(link); // Remove the link after clicking
+                    showToast("music");
+                })
+                .catch(error => {
+                    console.error('Download music failed', error);
+                });
+        }
+
+        function showLoadingAnimation() {
+            document.getElementById('loading').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('loading').style.display = 'none';
+            }, 3000); // Simulate 3 seconds loading time
+        }
+
+        function showToast(type) {
+            const toastDialog = document.getElementById('toastDialog');
+            const toastMessage = document.getElementById('toastMessage');
+
+            // Change the toast message based on type (video or music)
+            if (type === "video") {
+                toastMessage.innerHTML = "Video Anda sedang diunduh! Nikmati video TikTok langsung di perangkat Anda.";
+            } else if (type === "music") {
+                toastMessage.innerHTML = "Musik Anda sedang diunduh! Nikmati musik TikTok favorit Anda langsung di perangkat Anda.";
+            }
+
+            toastDialog.style.display = 'block';
+        }
+
+        function closeToast() {
+            const toastDialog = document.getElementById('toastDialog');
+            toastDialog.style.display = 'none';
+        }
+
+        function shareLink() {
+            const url = window.location.href;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'ZVex AI Video Downloader',
+                    text: 'Check out this cool TikTok video downloader!',
+                    url: url,
+                }).then(() => {
+                    console.log('Shared successfully');
+                }).catch((error) => {
+                    console.error('Error sharing:', error);
+                });
+            } else {
+                alert('Share feature is not available on this browser.');
+            }
+        }
+    </script>
+
+</body>
+</html>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        body {
+            background-color: #111;
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 36px;
+            color: cyan;
+            margin-bottom: 20px;
+        }
+
+        input {
+            padding: 12px;
+            width: 80%;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 20px;
+            font-size: 16px;
+            text-align: center;
+            background-color: #222;
+            color: #fff;
+        }
+
+        button {
+            padding: 12px 25px;
+            background: cyan;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #00b7b7;
+            transform: scale(1.1);
+        }
+
+        #loading {
+            width: 100px;
+            height: 100px;
+            border: 5px solid rgba(255, 255, 255, 0.2);
+            border-top: 5px solid cyan;
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+            margin-top: 20px;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #progressBar {
+            width: 0;
+            height: 5px;
+            background-color: cyan;
+            margin-top: 20px;
+            transition: width 1s ease-in-out;
+        }
+
+        .buttons-container {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            display: none;
+        }
+
+        .buttons-container button {
+            width: 80%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .gif-container {
+            margin-top: 20px;
+            display: none;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        /* Modal Style */
+        #toastDialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 500px;
+            padding: 30px;
+            text-align: center;
+            display: none;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+            animation: slideUp 1s ease-out forwards;
+        }
+
+        /* Slide up animation for toast */
+        @keyframes slideUp {
+            0% { transform: translate(-50%, 60%); opacity: 0; }
+            100% { transform: translate(-50%, -50%); opacity: 1; }
+        }
+
+        #toastDialog h1 {
+            font-size: 28px;
+            color: cyan;
+            margin-bottom: 20px;
+        }
+
+        #toastDialog p {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        .modal-buttons button {
+            background-color: cyan;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            width: 45%;
+        }
+
+        .modal-buttons button:hover {
+            background: #00b7b7;
+            transform: scale(1.1);
+        }
+
+        /* Icons in buttons */
+        .modal-buttons button i {
+            margin-right: 8px;
+        }
+
+        .modal-buttons button:active {
+            transform: scale(0.95);
+        }
+
+    </style>
